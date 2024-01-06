@@ -8,4 +8,8 @@ export class CreateArticleDto {
   @IsString()
   @MinLength(1)
   content: string
+
+  @IsString()
+  @MinLength(1)
+  shortContent: string
 }

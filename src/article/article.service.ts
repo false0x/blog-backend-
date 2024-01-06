@@ -11,27 +11,48 @@ export class ArticleService {
 
   async getAll(pageOrAll?: number | 'all') {
     const articlesOnPage = 5
+    const totalArticles = await this.prisma.article.count()
 
     if (pageOrAll === 'all') {
-      return this.prisma.article.findMany({
+      const allArticles = await this.prisma.article.findMany({
         orderBy: {
           createdAt: 'desc',
         },
-        ...returnArticleObject,
+        include: returnArticleObject,
       })
+
+      return {
+        articles: allArticles,
+        pageInfo: {
+          currentPage: 1,
+          totalPages: 1,
+          remainingPages: 0,
+        },
+      }
     }
 
     const page = typeof pageOrAll === 'number' ? pageOrAll : 1
     const skipCount = Math.max((page - 1) * articlesOnPage, 0)
+    const totalPages = Math.ceil(totalArticles / articlesOnPage)
+    const remainingPages = Math.max(totalPages - page, 0)
 
-    return this.prisma.article.findMany({
+    const paginatedArticles = await this.prisma.article.findMany({
       skip: skipCount,
       take: articlesOnPage,
       orderBy: {
         createdAt: 'desc',
       },
-      ...returnArticleObject,
+      include: returnArticleObject,
     })
+
+    return {
+      articles: paginatedArticles,
+      pageInfo: {
+        currentPage: page,
+        totalPages: totalPages,
+        remainingPages: remainingPages,
+      },
+    }
   }
 
   async get(id: number) {
@@ -41,7 +62,7 @@ export class ArticleService {
       where: {
         id,
       },
-      ...returnArticleObject,
+      include: returnArticleObject,
     })
 
     if (!article) throw new NotFoundException('Article not found')
@@ -52,7 +73,7 @@ export class ArticleService {
   async create(data: CreateArticleDto) {
     return this.prisma.article.create({
       data,
-      ...returnArticleObject,
+      include: returnArticleObject,
     })
   }
 
@@ -69,13 +90,16 @@ export class ArticleService {
       data: {
         title: data.title,
         content: data.content,
+        shortContent: data.shortContent,
       },
-      ...returnArticleObject,
+      include: returnArticleObject,
     })
   }
 
   async delete(id: number) {
-    await this.get(id)
+    const article = await this.get(id)
+
+    if (!article) throw new NotFoundException('Article not found')
 
     return this.prisma.article.delete({
       where: {

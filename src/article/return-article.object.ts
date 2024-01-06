@@ -1,5 +1,9 @@
-export const returnArticleObject = {
-  include: {
-    comments: true
+import { Prisma } from '.prisma/client'
+
+export const returnArticleObject: Prisma.ArticleInclude = {
+  comments: {
+    orderBy: {
+      createdAt: 'desc'
+    }
   }
 }
